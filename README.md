@@ -13,15 +13,9 @@ const analyticsStorage = new AnalyticsStorage(accountName, accountKey, options?)
   */
 const onInteraction = onAction ({ enabled, throwException = false }, analyticsStorage);
 ...
-onInteraction({
-    req,
-    actions,
-    lastAction,
-    skill,
-    tracking
-});
+app.processor.on('interaction', onInteraction);
 ```
-## How to run test
+## How to run tests
 Create secretKey.json in `./config`
 
 ```json
