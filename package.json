@@ -1,0 +1,19 @@
+{
+  "name": "wingbot-azure-tablestorage",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wingbotai/wingbot-azure-tablestorage.git"
+  },
+  "author": "wingbot.ai",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wingbotai/wingbot-azure-tablestorage/issues"
+  },
+  "homepage": "https://github.com/wingbotai/wingbot-azure-tablestorage#readme"
+}
