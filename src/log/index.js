@@ -3,15 +3,12 @@
  */
 'use strict';
 const moduleLoggerFactory = require('./moduleLoggerFactory');
+const config = require('../../config');
 
 /** @typedef {import('./moduleLoggerFactory').ModuleLoggerWithClose} ModuleLoggerWithClose */
 
 /** @type {ModuleLoggerWithClose} */
 let logger;
-
-const config = {
-    verboseLog: 'debug'
-};
 
 if (config.appInsights) {
     // @ts-ignore
