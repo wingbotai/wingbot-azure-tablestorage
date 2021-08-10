@@ -9,9 +9,14 @@ npm i wingbot-azure-tablestorage
 const analyticsStorage = new AnalyticsStorage(accountName, accountKey, options?);
 
 /**
-  * @param {InteractionEvent} event
+  * @param {object} options
+  * @param {boolean} options.enabled
+  * @param {boolean} options.throwException
+  * @param {Log} options.log
+  * @param {AnalyticsStorage} analyticsStorage
+  * 
   */
-const onInteraction = onAction ({ enabled, throwException = false }, analyticsStorage);
+const onInteraction = onAction ({ enabled, throwException = false, log = console }, analyticsStorage);
 ...
 app.processor.on('interaction', onInteraction);
 ```
