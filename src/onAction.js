@@ -5,14 +5,14 @@
 
 const { replaceDiacritics } = require('webalize');
 const { ai } = require('wingbot');
-const anonymize = require('./anonymize');
 
 /** @typedef {import('wingbot/src/Processor').InteractionEvent} InteractionEvent */
 
 function factoryOnActionEvent ({
     enabled,
     throwException = false,
-    log = console
+    log = console,
+    anonymize = (x) => x
 },
 analyticsStorage) {
     /**
@@ -321,6 +321,4 @@ analyticsStorage) {
     };
 }
 
-module.exports = {
-    factoryOnActionEvent
-};
+module.exports = factoryOnActionEvent;

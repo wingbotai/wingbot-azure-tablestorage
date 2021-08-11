@@ -12,11 +12,17 @@ const analyticsStorage = new AnalyticsStorage(accountName, accountKey, options?)
   * @param {object} options
   * @param {boolean} options.enabled
   * @param {boolean} options.throwException
+  * @param {function} options.anonymize
   * @param {Log} options.log
   * @param {AnalyticsStorage} analyticsStorage
   * 
   */
-const onInteraction = onAction ({ enabled, throwException = false, log = console }, analyticsStorage);
+const onInteraction = createOnInteractionHandler ({ 
+  enabled, 
+  throwException = false, 
+  log = console, 
+  anonymize = text => text 
+}, analyticsStorage);
 ...
 app.processor.on('interaction', onInteraction);
 ```
