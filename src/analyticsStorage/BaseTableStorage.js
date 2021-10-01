@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const { TableClient, TablesSharedKeyCredential } = require('@azure/data-tables');
+const { TableClient, AzureNamedKeyCredential } = require('@azure/data-tables');
 
 const LEN = 4;
 const MAX = (36 ** (LEN + 1)) - 1;
@@ -75,10 +75,10 @@ class BaseTableStorage {
 
     async _createTableAndGetClient (tableName) {
         const key = await Promise.resolve(this._accountKey);
-        const credentials = new TablesSharedKeyCredential(this._accountName, key);
+        const credentials = new AzureNamedKeyCredential(this._accountName, key);
         const tc = new TableClient(this._url, tableName, credentials);
         try {
-            await tc.create();
+            await tc.createTable();
         } catch (e) {
             if (e.statusCode !== 409) {
                 throw e;
