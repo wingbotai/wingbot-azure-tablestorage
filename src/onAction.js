@@ -7,18 +7,38 @@ const { replaceDiacritics } = require('webalize');
 const { ai } = require('wingbot');
 
 /** @typedef {import('wingbot/src/Processor').InteractionEvent} InteractionEvent */
+/** @typedef {import('wingbot/src/Request')} Request */
+/** @typedef {import('./analyticsStorage/AnalyticsStorage')} AnalyticsStorage */
 
+/**
+ *
+ * @param {object} config
+ * @param {boolean} [config.enabled] - default true
+ * @param {boolean} [config.throwException] - default false
+ * @param {boolean} [config.log] - console like logger
+ * @param {Function} [config.anonymize] - text anonymization function
+ * @param {AnalyticsStorage} analyticsStorage
+ * @returns
+ */
 function factoryOnActionEvent ({
-    enabled,
+    enabled = true,
     throwException = false,
     log = console,
     anonymize = (x) => x
 },
 analyticsStorage) {
+
     /**
-      * @param {InteractionEvent} event
+     * @param {object} params
+      * @param {Request} params.req
+      * @param {string[]} params.actions
+      * @param {string} params.lastAction
+      * @param {string} params.skill
+      * @param {object[]} params.tracking
+      * @param {object} params.state
+      * @param {object} params.data
       */
-    return async function onInteraction ({
+    async function onInteraction ({
         req,
         actions,
         lastAction,
@@ -55,9 +75,11 @@ analyticsStorage) {
                 score = 0
             } = {}] = req.intents;
 
-            const text = anonymize(
-                replaceDiacritics(req.text()).replace(/\s+/g, ' ').toLowerCase().trim()
-            );
+            const text = req.isConfidentInput()
+                ? '*****'
+                : anonymize(
+                    replaceDiacritics(req.text()).replace(/\s+/g, ' ').toLowerCase().trim()
+                );
 
             const [action = '(none)', ...otherActions] = actions;
 
@@ -318,7 +340,9 @@ analyticsStorage) {
             }
             log.error('failed sending logs', e);
         }
-    };
+    }
+
+    return onInteraction;
 }
 
 module.exports = factoryOnActionEvent;
