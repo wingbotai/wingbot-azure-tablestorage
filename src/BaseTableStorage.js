@@ -10,6 +10,8 @@ const MAX = (36 ** (LEN + 1)) - 1;
 
 const MAX_TS = 9999999999999;
 
+const UPPERCASE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 class BaseTableStorage {
 
     /**
@@ -29,6 +31,9 @@ class BaseTableStorage {
         this._i = Math.floor(Math.random() * MAX)
             .toString(36)
             .padStart(LEN, '0');
+
+        this._sessionSequence = Math.floor(Math.random() * UPPERCASE_CHARS.length);
+        this._sessionInstance = UPPERCASE_CHARS[Math.floor(Math.random() * UPPERCASE_CHARS.length)];
     }
 
     _id () {
@@ -65,11 +70,19 @@ class BaseTableStorage {
     }
 
     _inverseTimestamp (ts) {
-        return (MAX_TS - ts).toString(36);
+        this._sessionSequence = (this._sessionSequence + 1) % UPPERCASE_CHARS.length;
+
+        const sidChar = UPPERCASE_CHARS[this._sessionSequence];
+
+        const firstRandChar = UPPERCASE_CHARS[Math.floor(Math.random() * UPPERCASE_CHARS.length)];
+        const secondRandChar = UPPERCASE_CHARS[Math.floor(Math.random() * UPPERCASE_CHARS.length)];
+
+        return `${(MAX_TS - ts).toString(36)}${sidChar}${this._sessionInstance}${firstRandChar}${secondRandChar}`;
     }
 
-    _dateFromInversedTimestamp (inversedTimestamp) {
-        const num = parseInt(inversedTimestamp, 36);
+    _dateFromInversedTimestamp (inverseTimestamp) {
+        const clean = inverseTimestamp.replace(/[A-Z]+$/, '');
+        const num = parseInt(clean, 36);
         return new Date(MAX_TS - num);
     }
 

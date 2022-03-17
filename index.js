@@ -3,8 +3,12 @@
  */
 'use strict';
 
-const onAction = require('./src/onAction');
-const AnalyticsStorage = require('./src/analyticsStorage');
+const createOnInteractionHandler = require('./src/createOnInteractionHandler');
+const AnalyticsStorage = require('./src/AnalyticsStorage');
+const BaseTableStorage = require('./src/BaseTableStorage');
 
-module.exports.createOnInteractionHandler = onAction;
-module.exports.AnalyticsStorage = AnalyticsStorage;
+module.exports = {
+    BaseTableStorage,
+    AnalyticsStorage,
+    createOnInteractionHandler
+};

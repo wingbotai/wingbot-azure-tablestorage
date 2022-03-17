@@ -5,88 +5,88 @@
 const BaseTableStorage = require('./BaseTableStorage');
 
 /**
-  * @typedef {object} AnalyticsEvent
-  * @prop {string} pageId
-  * @prop {string} senderId
-  * @prop {string} conversationId
-  * @prop {string} sessionId
-  * @prop {string} category
-  * @prop {string} type
-  * @prop {string} [label]
-  * @prop {number} [value]
-  * @prop {string} [action]
-  * @prop {string} [cd1]
-  * @prop {string} [cd2]
-  * @prop {string} [cd3]
-  * @prop {string} [cd4]
-  * @prop {string} [cd5]
-  * @prop {string} [cd6]
-  * @prop {string} [cd7]
-  * @prop {string} [cd8]
-  * @prop {string} [lastAction]
-  * @prop {boolean} [nonInteractive]
-  * @prop {string} [skill]
-  */
+ * @typedef {object} AnalyticsEvent
+ * @prop {string} pageId
+ * @prop {string} senderId
+ * @prop {string} conversationId
+ * @prop {string} sessionId
+ * @prop {string} category
+ * @prop {string} type
+ * @prop {string} [label]
+ * @prop {number} [value]
+ * @prop {string} [action]
+ * @prop {string} [cd1]
+ * @prop {string} [cd2]
+ * @prop {string} [cd3]
+ * @prop {string} [cd4]
+ * @prop {string} [cd5]
+ * @prop {string} [cd6]
+ * @prop {string} [cd7]
+ * @prop {string} [cd8]
+ * @prop {string} [lastAction]
+ * @prop {boolean} [nonInteractive]
+ * @prop {string} [skill]
+ */
 
 /**
-  * @typedef {object} AnalyticsOptions
-  * @prop {number} [sessionDuration] - duration of a session im ms
-  */
+ * @typedef {object} AnalyticsOptions
+ * @prop {number} [sessionDuration] - duration of a session im ms
+ */
 
 /**
-  * @typedef {object} InteractionView
-  * @prop {string} pageId
-  * @prop {string} senderId
-  * @prop {string} conversationId
-  * @prop {string} sessionId
-  * @prop {string} action
-  * @prop {string} allActions
-  * @prop {string} [requestAction]
-  * @prop {boolean} [isPassThread]
-  * @prop {boolean} [isQuickReply]
-  * @prop {boolean} [isPostback]
-  * @prop {boolean} [isAttachment]
-  * @prop {boolean} [isContextUpdate]
-  * @prop {boolean} [isNotification]
-  * @prop {boolean} [isText]
-  * @prop {boolean} [isGoto]
-  * @prop {string} [expected]
-  * @prop {boolean} [expectedTaken]
-  * @prop {string} [intent]
-  * @prop {string} [entities]
-  * @prop {string} [intentScore]
-  * @prop {string} [entities]
-  * @prop {string} [lastAction]
-  * @prop {string} [prevAction]
-  * @prop {string} [winnerIntent]
-  * @prop {boolean} [winnerTaken]
-  * @prop {string} [winnerAction]
-  * @prop {string} [winnerEntities]
-  * @prop {number} [winnerScore]
-  * @prop {string} [cd1]
-  * @prop {string} [cd2]
-  * @prop {string} [cd3]
-  * @prop {string} [cd4]
-  * @prop {string} [cd5]
-  * @prop {string} [cd6]
-  * @prop {string} [cd7]
-  * @prop {string} [cd8]
-  * @prop {string} [text]
-  * @prop {boolean} [nonInteractive]
-  * @prop {string} [skill]
-  */
+ * @typedef {object} InteractionView
+ * @prop {string} pageId
+ * @prop {string} senderId
+ * @prop {string} conversationId
+ * @prop {string} sessionId
+ * @prop {string} action
+ * @prop {string} allActions
+ * @prop {string} [requestAction]
+ * @prop {boolean} [isPassThread]
+ * @prop {boolean} [isQuickReply]
+ * @prop {boolean} [isPostback]
+ * @prop {boolean} [isAttachment]
+ * @prop {boolean} [isContextUpdate]
+ * @prop {boolean} [isNotification]
+ * @prop {boolean} [isText]
+ * @prop {boolean} [isGoto]
+ * @prop {string} [expected]
+ * @prop {boolean} [expectedTaken]
+ * @prop {string} [intent]
+ * @prop {string} [entities]
+ * @prop {string} [intentScore]
+ * @prop {string} [entities]
+ * @prop {string} [lastAction]
+ * @prop {string} [prevAction]
+ * @prop {string} [winnerIntent]
+ * @prop {boolean} [winnerTaken]
+ * @prop {string} [winnerAction]
+ * @prop {string} [winnerEntities]
+ * @prop {number} [winnerScore]
+ * @prop {string} [cd1]
+ * @prop {string} [cd2]
+ * @prop {string} [cd3]
+ * @prop {string} [cd4]
+ * @prop {string} [cd5]
+ * @prop {string} [cd6]
+ * @prop {string} [cd7]
+ * @prop {string} [cd8]
+ * @prop {string} [text]
+ * @prop {boolean} [nonInteractive]
+ * @prop {string} [skill]
+ */
 
 /**
-  * @typedef {object} UserMetadata
-  * @prop {string} [cd1]
-  * @prop {string} [cd2]
-  * @prop {string} [cd3]
-  * @prop {string} [cd4]
-  * @prop {string} [cd5]
-  * @prop {string} [cd6]
-  * @prop {string} [cd7]
-  * @prop {string} [cd8]
-  */
+ * @typedef {object} UserMetadata
+ * @prop {string} [cd1]
+ * @prop {string} [cd2]
+ * @prop {string} [cd3]
+ * @prop {string} [cd4]
+ * @prop {string} [cd5]
+ * @prop {string} [cd6]
+ * @prop {string} [cd7]
+ * @prop {string} [cd8]
+ */
 
 const USERS_TABLE = 'users';
 const SESSIONS_TABLE = 'sessions';
@@ -95,11 +95,11 @@ const EVENTS_TABLE = 'events';
 
 class AnalyticsStorage extends BaseTableStorage {
     /**
-      *
-      * @param {string} accountName
-      * @param {string|Promise<string>} accountKey
-      * @param {AnalyticsOptions} options
-      */
+     *
+     * @param {string} accountName
+     * @param {string|Promise<string>} accountKey
+     * @param {AnalyticsOptions} options
+     */
     constructor (accountName, accountKey, options = {}) {
         super(accountName, accountKey);
 
@@ -110,17 +110,17 @@ class AnalyticsStorage extends BaseTableStorage {
     }
 
     /**
-      * @param {AnalyticsOptions} options
-      */
+     * @param {AnalyticsOptions} options
+     */
     setOptions (options) {
         Object.assign(this._options, options);
     }
 
     /**
-      *
-      * @param {AnalyticsEvent} event
-      * @param {number} timestamp
-      */
+     *
+     * @param {AnalyticsEvent} event
+     * @param {number} timestamp
+     */
     async storeEvent (event, timestamp = null) {
         const tc = await this._getTableClient(EVENTS_TABLE);
 
@@ -148,10 +148,10 @@ class AnalyticsStorage extends BaseTableStorage {
     }
 
     /**
-      *
-      * @param {InteractionView} event
-      * @param {number} timestamp
-      */
+     *
+     * @param {InteractionView} event
+     * @param {number} timestamp
+     */
     async storeInteractionView (event, timestamp = null) {
         const tc = await this._getTableClient(INTERACTIONS_TABLE);
 
@@ -222,14 +222,14 @@ class AnalyticsStorage extends BaseTableStorage {
     }
 
     /**
-      *
-      * @param {string} pageId
-      * @param {string} senderId
-      * @param {UserMetadata} metadata
-      * @param {number} [ts]
-      * @param {boolean} [nonInteractive]
-      * @returns
-      */
+     *
+     * @param {string} pageId
+     * @param {string} senderId
+     * @param {UserMetadata} metadata
+     * @param {number} [ts]
+     * @param {boolean} [nonInteractive]
+     * @returns
+     */
     async getOrCreateUserSession (
         pageId, senderId, metadata = {}, ts = Date.now(), nonInteractive = false
     ) {

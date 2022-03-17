@@ -4,7 +4,7 @@
 'use strict';
 
 const assert = require('assert');
-const AnalyticsStorage = require('../src/analyticsStorage');
+const AnalyticsStorage = require('../src/AnalyticsStorage');
 const config = require('../config');
 
 describe('EventsStorage', () => {
