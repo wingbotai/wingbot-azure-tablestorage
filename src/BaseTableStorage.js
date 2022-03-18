@@ -4,11 +4,14 @@
 'use strict';
 
 const { TableClient, AzureNamedKeyCredential } = require('@azure/data-tables');
+const crypto = require('crypto');
 
 const LEN = 4;
 const MAX = (36 ** (LEN + 1)) - 1;
 
 const MAX_TS = 9999999999999;
+
+const UPPERCASE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 class BaseTableStorage {
 
@@ -29,6 +32,9 @@ class BaseTableStorage {
         this._i = Math.floor(Math.random() * MAX)
             .toString(36)
             .padStart(LEN, '0');
+
+        this._sessionSequence = Math.floor(Math.random() * UPPERCASE_CHARS.length);
+        this._sessionInstance = UPPERCASE_CHARS[Math.floor(Math.random() * UPPERCASE_CHARS.length)];
     }
 
     _id () {
@@ -64,12 +70,25 @@ class BaseTableStorage {
         return `${ts}${''.padStart(LEN * 2, 'z')}`;
     }
 
-    _inverseTimestamp (ts) {
-        return (MAX_TS - ts).toString(36);
+    _inverseTimestampHash (ts, hashValue = Math.random()) {
+        this._sessionSequence = (this._sessionSequence + 1) % UPPERCASE_CHARS.length;
+
+        const sidChar = UPPERCASE_CHARS[this._sessionSequence];
+
+        const randChar = UPPERCASE_CHARS[Math.floor(Math.random() * UPPERCASE_CHARS.length)];
+
+        const senderHash = crypto.createHash('shake256', { outputLength: 3 })
+            .update(`${hashValue}`)
+            .digest('hex');
+
+        const senderHashStr = parseInt(senderHash, 16).toString(36).substring(0, 4);
+
+        return `${(MAX_TS - ts).toString(36)}${sidChar}${this._sessionInstance}${randChar}${senderHashStr}`;
     }
 
-    _dateFromInversedTimestamp (inversedTimestamp) {
-        const num = parseInt(inversedTimestamp, 36);
+    _dateFromInversedTimestamp (inverseTimestamp) {
+        const clean = inverseTimestamp.replace(/[A-Z]+[0-9a-z]*$/, '');
+        const num = parseInt(clean, 36);
         return new Date(MAX_TS - num);
     }
 

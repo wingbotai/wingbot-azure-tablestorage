@@ -8,7 +8,7 @@ const { ai } = require('wingbot');
 
 /** @typedef {import('wingbot/src/Processor').InteractionEvent} InteractionEvent */
 /** @typedef {import('wingbot/src/Request')} Request */
-/** @typedef {import('./analyticsStorage/AnalyticsStorage')} AnalyticsStorage */
+/** @typedef {import('./AnalyticsStorage')} AnalyticsStorage */
 
 /**
  *
@@ -20,7 +20,7 @@ const { ai } = require('wingbot');
  * @param {AnalyticsStorage} analyticsStorage
  * @returns
  */
-function factoryOnActionEvent ({
+function createOnInteractionHandler ({
     enabled = true,
     throwException = false,
     log = console,
@@ -345,4 +345,4 @@ analyticsStorage) {
     return onInteraction;
 }
 
-module.exports = factoryOnActionEvent;
+module.exports = createOnInteractionHandler;
