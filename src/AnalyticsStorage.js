@@ -261,7 +261,7 @@ class AnalyticsStorage extends BaseTableStorage {
             sessionId = user.sessionId;
         } else {
             sessionStarted = nowDate;
-            sessionId = this._inverseTimestamp(sessionStarted.getTime());
+            sessionId = this._inverseTimestampHash(sessionStarted.getTime(), conversationId);
         }
 
         await tcUsers.upsertEntity({
