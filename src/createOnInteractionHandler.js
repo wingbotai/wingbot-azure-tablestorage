@@ -11,12 +11,25 @@ const { ai } = require('wingbot');
 /** @typedef {import('./AnalyticsStorage')} AnalyticsStorage */
 
 /**
+ * @callback MetadataExtractor
+ * @param {Request} req
+ * @returns {object}
+ */
+
+/**
+ * @callback Anonymizer
+ * @param {Request} req
+ * @returns {object}
+ */
+
+/**
  *
  * @param {object} config
  * @param {boolean} [config.enabled] - default true
  * @param {boolean} [config.throwException] - default false
  * @param {boolean} [config.log] - console like logger
- * @param {Function} [config.anonymize] - text anonymization function
+ * @param {Anonymizer} [config.anonymize] - text anonymization function
+ * @param {MetadataExtractor} [config.extractMetadata] - text anonymization function
  * @param {AnalyticsStorage} analyticsStorage
  * @returns
  */
@@ -24,7 +37,8 @@ function createOnInteractionHandler ({
     enabled = true,
     throwException = false,
     log = console,
-    anonymize = (x) => x
+    anonymize = (x) => x,
+    extractMetadata = (req) => ({})
 },
 analyticsStorage) {
 
@@ -65,7 +79,8 @@ analyticsStorage) {
                 conversationId
             } = await analyticsStorage
                 .getOrCreateUserSession(pageId, senderId, {
-                    cd1: (req.state.user && req.state.user.department) || 'unknown'
+                    cd1: (req.state.user && req.state.user.department) || 'unknown',
+                    ...extractMetadata(req)
                 }, timestamp, nonInteractive);
 
             // log.log('session created', { sessionId, conversationId });
