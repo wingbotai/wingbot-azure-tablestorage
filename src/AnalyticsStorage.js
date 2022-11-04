@@ -201,6 +201,9 @@ class AnalyticsStorage extends BaseTableStorage {
     }
 
     _getDate (input) {
+        if (!input) {
+            return new Date();
+        }
         if (input instanceof Date) {
             return input;
         }
