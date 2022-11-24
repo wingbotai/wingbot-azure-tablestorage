@@ -2,7 +2,16 @@
  * @author David Menger
  */
 'use strict';
+
 const BaseTableStorage = require('./BaseTableStorage');
+
+/* eslint max-len: 0 */
+
+/** @typedef {import('wingbot/src/analytics/onInteractionHandler').IAnalyticsStorage} IAnalyticsStorage */
+/** @typedef {import('wingbot/src/analytics/onInteractionHandler').IGALogger} IGALogger */
+/** @typedef {import('wingbot/src/analytics/onInteractionHandler').SessionMetadata} SessionMetadata */
+/** @typedef {import('wingbot/src/analytics/onInteractionHandler').GAUser} GAUser */
+/** @typedef {import('wingbot/src/analytics/onInteractionHandler').Event} Event */
 
 /**
  * @typedef {object} AnalyticsEvent
@@ -10,7 +19,7 @@ const BaseTableStorage = require('./BaseTableStorage');
  * @prop {string} senderId
  * @prop {string} conversationId
  * @prop {string} sessionId
- * @prop {string} category
+ * @prop {string} [category]
  * @prop {string} type
  * @prop {string} [label]
  * @prop {number} [value]
@@ -29,18 +38,13 @@ const BaseTableStorage = require('./BaseTableStorage');
  */
 
 /**
- * @typedef {object} AnalyticsOptions
- * @prop {number} [sessionDuration] - duration of a session im ms
- */
-
-/**
  * @typedef {object} InteractionView
  * @prop {string} pageId
  * @prop {string} senderId
  * @prop {string} conversationId
  * @prop {string} sessionId
  * @prop {string} action
- * @prop {string} allActions
+ * @prop {string} [allActions]
  * @prop {string} [requestAction]
  * @prop {boolean} [isPassThread]
  * @prop {boolean} [isQuickReply]
@@ -93,27 +97,30 @@ const SESSIONS_TABLE = 'sessions';
 const INTERACTIONS_TABLE = 'interactions';
 const EVENTS_TABLE = 'events';
 
+/**
+ * @class {AnalyticsStorage}
+ * @implements IAnalyticsStorage
+ */
 class AnalyticsStorage extends BaseTableStorage {
     /**
      *
      * @param {string} accountName
      * @param {string|Promise<string>} accountKey
-     * @param {AnalyticsOptions} options
      */
-    constructor (accountName, accountKey, options = {}) {
+    constructor (accountName, accountKey) {
         super(accountName, accountKey);
 
-        this._options = {
-            sessionDuration: 3600000
-        };
-        Object.assign(this._options, options);
+        /** @type {IGALogger} */
+        this._logger = console;
+
+        this.hasExtendedEvents = true;
     }
 
     /**
-     * @param {AnalyticsOptions} options
+     * @param {IGALogger} logger
      */
-    setOptions (options) {
-        Object.assign(this._options, options);
+    setDefaultLogger (logger) {
+        this._logger = logger;
     }
 
     /**
@@ -143,6 +150,7 @@ class AnalyticsStorage extends BaseTableStorage {
             cd8: '',
             nonInteractive: false,
             value: 0,
+            lang: '',
             ...event
         });
     }
@@ -191,6 +199,7 @@ class AnalyticsStorage extends BaseTableStorage {
             isPassThread: false,
             lastAction: '',
             prevAction: '',
+            lang: '',
             nonInteractive: false,
             ...event
         });
@@ -200,120 +209,141 @@ class AnalyticsStorage extends BaseTableStorage {
         return `${pageId}|${senderId}`;
     }
 
-    _getDate (input) {
-        if (!input) {
-            return new Date();
-        }
-        if (input instanceof Date) {
-            return input;
-        }
-        if (input.type === 'DateTime') {
-            return new Date(input.value);
-        }
-        return new Date(input);
-    }
-
     /**
-      *
-      * @param {number} leftOffset
-      * @param {Date} left
-      * @param {Date} right
-      * @returns
-      */
-    _isDateOffsetGreaterOrEqual (leftOffset, left, right) {
-        return (this._getDate(left).getTime() + leftOffset) >= this._getDate(right).getTime();
+     *
+     * @param {string} pageId
+     * @param {string} senderId
+     * @param {string} sessionId
+     * @param {SessionMetadata} [metadata]
+     * @param {number} [ts]
+     * @param {boolean} [nonInteractive]
+     * @returns {Promise}
+     */
+    async createUserSession (
+        pageId,
+        senderId,
+        sessionId,
+        metadata,
+        ts = Date.now(),
+        nonInteractive = false
+    ) {
+        const tcSessions = await this._getTableClient(SESSIONS_TABLE);
+        const nowDate = new Date(ts);
+
+        const conversationId = this._conversationId(pageId, senderId);
+
+        await tcSessions.upsertEntity({
+            partitionKey: conversationId,
+            rowKey: sessionId,
+            senderId,
+            pageId,
+            conversationId,
+            sessionStarted: nowDate,
+            lastInteraction: nowDate,
+            interactions: nonInteractive ? 0 : 1
+        }, 'Replace');
     }
 
     /**
      *
      * @param {string} pageId
      * @param {string} senderId
-     * @param {UserMetadata} metadata
+     * @param {string} sessionId
+     * @param {Event[]} events
+     * @param {GAUser} [user]
      * @param {number} [ts]
      * @param {boolean} [nonInteractive]
-     * @returns
+     * @param {boolean} [sessionStarted]
+     * @returns {Promise}
      */
-    async getOrCreateUserSession (
-        pageId, senderId, metadata = {}, ts = Date.now(), nonInteractive = false
+    async storeEvents (
+        pageId,
+        senderId,
+        sessionId,
+        events,
+        user = null,
+        ts = Date.now(),
+        nonInteractive = false,
+        sessionStarted = false
     ) {
-        const tcUsers = await this._getTableClient(USERS_TABLE);
-        const tcSessions = await this._getTableClient(SESSIONS_TABLE);
-
         const partitionKey = pageId;
         const rowKey = senderId;
-        const nowDate = new Date(ts);
+        const conversationId = this._conversationId(pageId, senderId);
 
-        let user = null;
+        const nowDate = new Date(ts);
+        const tcSessions = await this._getTableClient(SESSIONS_TABLE);
+        const tcUsers = await this._getTableClient(USERS_TABLE);
+
+        let dbUser = null;
         try {
-            user = await tcUsers.getEntity(partitionKey, rowKey);
+            dbUser = await tcUsers.getEntity(partitionKey, rowKey);
         } catch (e) {
             if (e.statusCode !== 404) {
                 throw e;
             }
         }
 
-        let sessionStarted = null;
-        let sessionId;
-        const conversationId = this._conversationId(pageId, senderId);
-
-        if (user && (nonInteractive || this._isDateOffsetGreaterOrEqual(
-            // @ts-ignore
-            this._options.sessionDuration, user.lastInteraction, nowDate
-        ))) {
-            // @ts-ignore
-            sessionId = user.sessionId;
-        } else {
-            sessionStarted = nowDate;
-            sessionId = this._inverseTimestampHash(sessionStarted.getTime(), conversationId);
-        }
+        const { id = null, ...metadata } = user || {};
 
         await tcUsers.upsertEntity({
             partitionKey,
             rowKey,
             updated: new Date(),
             conversationId,
+            userId: id,
             ...metadata,
-            ...(user ? {} : { created: nowDate }),
+            ...(dbUser ? {} : { created: nowDate }),
+            sessionId,
             ...(nonInteractive ? {} : { lastInteraction: nowDate }),
             ...(sessionStarted ? { sessionStarted, sessionId } : {})
         }, 'Merge');
 
-        let session;
-
         if (!sessionStarted && !nonInteractive) {
-            session = await tcSessions.getEntity(conversationId, sessionId);
-
-            if (session) {
-                await tcSessions.updateEntity({
-                    partitionKey: conversationId,
-                    rowKey: sessionId,
-                    lastInteraction: nowDate,
-                    // @ts-ignore
-                    interactions: session.interactions + 1
-                }, 'Merge');
-            } else {
-                // session start probably failed before
-                sessionStarted = this._dateFromInversedTimestamp(sessionId);
+            let session = null;
+            try {
+                session = await tcSessions.getEntity(conversationId, sessionId);
+            } catch (e) {
+                if (e.statusCode !== 404) {
+                    throw e;
+                }
             }
-        }
 
-        if (sessionStarted) {
-            await tcSessions.upsertEntity({
+            await tcSessions.updateEntity({
                 partitionKey: conversationId,
                 rowKey: sessionId,
-                senderId,
-                pageId,
-                conversationId,
-                sessionStarted,
                 lastInteraction: nowDate,
-                interactions: nonInteractive ? 0 : 1
-            }, 'Replace');
+                // @ts-ignore
+                interactions: session ? session.interactions + 1 : 1
+            }, 'Merge');
         }
 
-        return {
-            sessionId,
-            conversationId
-        };
+        if (events.length === 0) {
+            return;
+        }
+
+        await Promise.all(
+            events.map((e) => {
+                switch (e.type) {
+                    case 'page_view':
+                        return this.storeInteractionView({
+                            action: '*',
+                            ...e,
+                            pageId,
+                            sessionId,
+                            senderId,
+                            conversationId
+                        }, ts);
+                    default:
+                        return this.storeEvent({
+                            ...e,
+                            pageId,
+                            sessionId,
+                            senderId,
+                            conversationId
+                        }, ts);
+                }
+            })
+        );
     }
 }
 

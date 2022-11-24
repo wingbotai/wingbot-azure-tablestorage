@@ -5,27 +5,18 @@ npm i wingbot-azure-tablestorage
 ```
 
 ## Usage
-```javascript
-const analyticsStorage = new AnalyticsStorage(accountName, accountKey, options?);
 
-/**
-  * @param {object} options
-  * @param {boolean} options.enabled
-  * @param {boolean} options.throwException
-  * @param {function} options.anonymize
-  * @param {Log} options.log
-  * @param {AnalyticsStorage} analyticsStorage
-  * 
-  */
-const onInteraction = createOnInteractionHandler ({ 
-  enabled, 
-  throwException = false, 
-  log = console, 
-  anonymize = text => text 
-}, analyticsStorage);
-...
-app.processor.on('interaction', onInteraction);
+```javascript
+const { BotApp } = require('wingbot');
+const { AnalyticsStorage } = require('wingbot-azure-tablestorage');
+
+const analyticsStorage = new AnalyticsStorage(accountName, accountKey);
+
+const bot = new BotApp(/** bot app config here */);
+
+bot.registerAnalyticsStorage(analyticsStorage);
 ```
+
 ## How to run tests
 Create secretKey.json in `./config`
 

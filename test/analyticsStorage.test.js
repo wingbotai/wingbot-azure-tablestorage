@@ -3,7 +3,8 @@
  */
 'use strict';
 
-const assert = require('assert');
+// const assert = require('assert');
+const { Router, Tester, onInteractionHandler } = require('wingbot');
 const AnalyticsStorage = require('../src/AnalyticsStorage');
 const config = require('../config');
 
@@ -48,27 +49,24 @@ describe('EventsStorage', () => {
 
     it('should obtain user', async function () {
         this.timeout(5000);
-        let optimizeSpeed = Date.now();
-        const firstVisit = await analyticsStorage.getOrCreateUserSession(pageId, senderId);
-        optimizeSpeed = (Date.now() - optimizeSpeed) * 7;
-        analyticsStorage.setOptions({ sessionDuration: optimizeSpeed });
-        this.timeout(10 * optimizeSpeed);
-        let get = await analyticsStorage.getOrCreateUserSession(pageId, senderId);
 
-        assert.strictEqual(firstVisit.sessionId, get.sessionId);
+        const bot = new Router();
 
-        await new Promise((r) => setTimeout(r, optimizeSpeed));
-        get = await analyticsStorage
-            .getOrCreateUserSession(pageId, senderId, {}, undefined, true);
-        assert.strictEqual(firstVisit.sessionId, get.sessionId);
+        bot.use('start', (req, res) => {
+            res.text('hello');
+        });
 
-        const secondVisit = await analyticsStorage.getOrCreateUserSession(pageId, senderId);
-        await new Promise((r) => setTimeout(r, optimizeSpeed / 2));
-        await analyticsStorage.getOrCreateUserSession(pageId, senderId);
-        await new Promise((r) => setTimeout(r, optimizeSpeed / 2));
-        get = await analyticsStorage.getOrCreateUserSession(pageId, senderId);
-        assert.strictEqual(secondVisit.sessionId, get.sessionId);
-        assert.notStrictEqual(secondVisit.sessionId, firstVisit.sessionId);
+        bot.use((req, res) => {
+            res.text('fallback');
+        });
+
+        const t = new Tester(bot);
+
+        t.processor.on('interaction', onInteractionHandler({ throwException: true }, analyticsStorage));
+
+        await t.postBack('start');
+
+        await t.text('hello');
     });
 
 });
