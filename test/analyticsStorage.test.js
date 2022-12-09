@@ -43,7 +43,9 @@ describe('EventsStorage', () => {
             conversationId: 'x',
             sessionId: 'y',
             action: 'sasa',
-            lastAction: 'lele'
+            lastAction: 'lele',
+            sessionCount: 0,
+            sessionDuration: 0
         });
     });
 
@@ -62,7 +64,7 @@ describe('EventsStorage', () => {
 
         const t = new Tester(bot);
 
-        t.processor.on('interaction', onInteractionHandler({ throwException: true }, analyticsStorage));
+        t.processor.on('interaction', onInteractionHandler({ throwException: true }, analyticsStorage).onInteraction);
 
         await t.postBack('start');
 

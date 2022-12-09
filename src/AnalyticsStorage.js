@@ -78,6 +78,8 @@ const BaseTableStorage = require('./BaseTableStorage');
  * @prop {string} [text]
  * @prop {boolean} [nonInteractive]
  * @prop {string} [skill]
+ * @prop {number} sessionCount,
+ * @prop {number} sessionDuration
  */
 
 /**
@@ -223,7 +225,7 @@ class AnalyticsStorage extends BaseTableStorage {
         pageId,
         senderId,
         sessionId,
-        metadata,
+        metadata = {},
         ts = Date.now(),
         nonInteractive = false
     ) {
@@ -231,6 +233,10 @@ class AnalyticsStorage extends BaseTableStorage {
         const nowDate = new Date(ts);
 
         const conversationId = this._conversationId(pageId, senderId);
+
+        const {
+            sessionCount = 0
+        } = metadata;
 
         await tcSessions.upsertEntity({
             partitionKey: conversationId,
@@ -240,6 +246,7 @@ class AnalyticsStorage extends BaseTableStorage {
             conversationId,
             sessionStarted: nowDate,
             lastInteraction: nowDate,
+            sessionCount,
             interactions: nonInteractive ? 0 : 1
         }, 'Replace');
     }
@@ -254,6 +261,7 @@ class AnalyticsStorage extends BaseTableStorage {
      * @param {number} [ts]
      * @param {boolean} [nonInteractive]
      * @param {boolean} [sessionStarted]
+     * @param {SessionMetadata} [metadata]
      * @returns {Promise}
      */
     async storeEvents (
@@ -264,7 +272,8 @@ class AnalyticsStorage extends BaseTableStorage {
         user = null,
         ts = Date.now(),
         nonInteractive = false,
-        sessionStarted = false
+        sessionStarted = false,
+        metadata = {}
     ) {
         const partitionKey = pageId;
         const rowKey = senderId;
@@ -283,7 +292,12 @@ class AnalyticsStorage extends BaseTableStorage {
             }
         }
 
-        const { id = null, ...metadata } = user || {};
+        const {
+            sessionCount = 0,
+            sessionDuration = 0
+        } = metadata;
+
+        const { id = null, ...userMeta } = user || {};
 
         await tcUsers.upsertEntity({
             partitionKey,
@@ -291,7 +305,7 @@ class AnalyticsStorage extends BaseTableStorage {
             updated: new Date(),
             conversationId,
             userId: id,
-            ...metadata,
+            ...userMeta,
             ...(dbUser ? {} : { created: nowDate }),
             sessionId,
             ...(nonInteractive ? {} : { lastInteraction: nowDate }),
@@ -331,7 +345,9 @@ class AnalyticsStorage extends BaseTableStorage {
                             pageId,
                             sessionId,
                             senderId,
-                            conversationId
+                            conversationId,
+                            sessionCount,
+                            sessionDuration
                         }, ts);
                     default:
                         return this.storeEvent({

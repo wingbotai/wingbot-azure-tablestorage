@@ -1,6 +1,6 @@
 {
   "name": "wingbot-azure-tablestorage",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Azure Table Storage connector for wingbot.ai",
   "engines": {
     "node": ">=12.0.0"
@@ -39,7 +39,7 @@
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "mocha": "^9.2.2",
-    "wingbot": "^3.44.0"
+    "wingbot": "^3.46.0"
   },
   "dependencies": {
     "@azure/data-tables": "^13.0.1",
