@@ -3,6 +3,7 @@
  */
 'use strict';
 
+const { TrackingCategory, TrackingType } = require('wingbot');
 const BaseTableStorage = require('./BaseTableStorage');
 
 /* eslint max-len: 0 */
@@ -78,6 +79,13 @@ const BaseTableStorage = require('./BaseTableStorage');
  * @prop {string} [text]
  * @prop {boolean} [nonInteractive]
  * @prop {string} [skill]
+ * @prop {string} [prevSkill]
+ * @prop {string} [pathname]
+ * @prop {boolean} [didHandover]
+ * @prop {boolean} [withUser]
+ * @prop {number} [feedback]
+ * @prop {string} [userId]
+ * @prop {string} [responseTexts]
  * @prop {number} sessionCount,
  * @prop {number} sessionDuration
  */
@@ -183,6 +191,7 @@ class AnalyticsStorage extends BaseTableStorage {
             expected: '',
             expectedTaken: false,
             skill: '',
+            prevSkill: '',
             cd1: '',
             cd2: '',
             cd3: '',
@@ -203,6 +212,9 @@ class AnalyticsStorage extends BaseTableStorage {
             prevAction: '',
             lang: '',
             nonInteractive: false,
+            responseTexts: '',
+            didHandover: false,
+            feedback: null,
             ...event
         });
     }
@@ -235,7 +247,10 @@ class AnalyticsStorage extends BaseTableStorage {
         const conversationId = this._conversationId(pageId, senderId);
 
         const {
-            sessionCount = 0
+            sessionCount = 0,
+            browserName = null,
+            deviceType = null,
+            osName = null
         } = metadata;
 
         await tcSessions.upsertEntity({
@@ -247,7 +262,10 @@ class AnalyticsStorage extends BaseTableStorage {
             sessionStarted: nowDate,
             lastInteraction: nowDate,
             sessionCount,
-            interactions: nonInteractive ? 0 : 1
+            interactions: nonInteractive ? 0 : 1,
+            browserName,
+            deviceType,
+            osName
         }, 'Replace');
     }
 
@@ -294,7 +312,12 @@ class AnalyticsStorage extends BaseTableStorage {
 
         const {
             sessionCount = 0,
-            sessionDuration = 0
+            sessionDuration = 0,
+            responseTexts = [],
+            skill = null,
+            prevSkill = null,
+            didHandover,
+            feedback
         } = metadata;
 
         const { id = null, ...userMeta } = user || {};
@@ -347,7 +370,16 @@ class AnalyticsStorage extends BaseTableStorage {
                             senderId,
                             conversationId,
                             sessionCount,
-                            sessionDuration
+                            sessionDuration,
+                            ...(e.category === 'Bot: Interaction'
+                                ? {
+                                    responseTexts: responseTexts.join('\n'),
+                                    skill,
+                                    prevSkill,
+                                    didHandover,
+                                    feedback
+                                }
+                                : {})
                         }, ts);
                     default:
                         return this.storeEvent({
@@ -355,7 +387,12 @@ class AnalyticsStorage extends BaseTableStorage {
                             pageId,
                             sessionId,
                             senderId,
-                            conversationId
+                            conversationId,
+                            ...(e.type === TrackingType.CONVERSATION_EVENT
+                                ? {
+                                    responseTexts: responseTexts.join('\n')
+                                }
+                                : {})
                         }, ts);
                 }
             })
