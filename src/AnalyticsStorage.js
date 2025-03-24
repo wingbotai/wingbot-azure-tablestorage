@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const { TrackingCategory, TrackingType } = require('wingbot');
+const { TrackingType } = require('wingbot');
 const BaseTableStorage = require('./BaseTableStorage');
 
 /* eslint max-len: 0 */
@@ -269,6 +269,32 @@ class AnalyticsStorage extends BaseTableStorage {
         }, 'Replace');
     }
 
+    async _getSession (tcSessions, conversationId, sessionId) {
+        let session = null;
+        try {
+            session = await tcSessions.getEntity(conversationId, sessionId);
+        } catch (e) {
+            if (e.statusCode !== 404) {
+                throw e;
+            }
+        }
+        return session;
+    }
+
+    async _updateSession (tcSessions, conversationId, sessionId, nowDate) {
+        const session = await this._getSession(tcSessions, conversationId, sessionId);
+
+        await tcSessions.updateEntity({
+            partitionKey: conversationId,
+            rowKey: sessionId,
+            lastInteraction: nowDate,
+            // @ts-ignore
+            interactions: session ? session.interactions + 1 : 1
+        }, 'Merge');
+
+        return session;
+    }
+
     /**
      *
      * @param {string} pageId
@@ -336,22 +362,21 @@ class AnalyticsStorage extends BaseTableStorage {
         }, 'Merge');
 
         if (!sessionStarted && !nonInteractive) {
-            let session = null;
-            try {
-                session = await tcSessions.getEntity(conversationId, sessionId);
-            } catch (e) {
-                if (e.statusCode !== 404) {
-                    throw e;
-                }
-            }
+            await this._updateSession(tcSessions, conversationId, sessionId, nowDate)
+                .catch((e) => {
+                    if (e.code !== 'ResourceNotFound') {
+                        this._logger.error('FAILED TO UPDATE SESSION', e, { k: Object.entries(e) });
+                    }
+                    // not async, just try it again
+                    setTimeout(() => {
+                        this._updateSession(tcSessions, conversationId, sessionId, nowDate)
+                            .catch((er) => {
+                                this._logger.log(`FAILED TO UPDATE SESSION AGAIN: ${er && er.message}`, { k: Object.entries(e) });
+                            });
+                    }, 5000);
+                    return null;
+                });
 
-            await tcSessions.updateEntity({
-                partitionKey: conversationId,
-                rowKey: sessionId,
-                lastInteraction: nowDate,
-                // @ts-ignore
-                interactions: session ? session.interactions + 1 : 1
-            }, 'Merge');
         }
 
         if (events.length === 0) {
@@ -373,6 +398,7 @@ class AnalyticsStorage extends BaseTableStorage {
                             sessionDuration,
                             ...(e.category === 'Bot: Interaction'
                                 ? {
+                                    ...metadata,
                                     responseTexts: responseTexts.join('\n'),
                                     skill,
                                     prevSkill,
